@@ -18,7 +18,7 @@ const swaggerOptions = {
       description: 'Database Manager API - Gerenciamento de instâncias de banco de dados usando Docker',
     },
   },
-  apis: ['./src/api/routes/instances.ts'], // Caminho para os arquivos de rotas
+  apis: ['./src/api/routes/*.ts'], // Caminho para os arquivos de rotas
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);

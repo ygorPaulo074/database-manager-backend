@@ -38,7 +38,7 @@ export class InstanceService {
             image: `${engine}:${version}`,
             name: name,
             env: envVars ?? [],
-            ...(port && { portBindings: { [`${port}/tcp`]: [{ HostPort: port }] } })
+            ...(port && { portBindings: { [`${port}/tcp`]: [{ HostPort: String(port) }] } })
             };
 
             const container = await this.dockerManager.createContainer(containerOptions);

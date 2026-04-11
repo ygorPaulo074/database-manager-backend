@@ -1,52 +1,108 @@
-# Mini DaaS Privado — Gerenciador de Instâncias de Banco de Dados
+# Database Manager Backend
 
-## Visão Geral
+## Descrição
 
-Sistema para gerenciar localmente múltiplas instâncias de bancos de dados (PostgreSQL, MySQL, Redis, etc.) utilizando containers Docker.  
-Projetado para **uso pessoal em ambiente de desenvolvimento**, com foco em simplicidade, modularidade e controle direto.
+Sistema backend para gerenciamento de instâncias de bancos de dados utilizando containers Docker. Permite criar, iniciar, parar e remover instâncias de PostgreSQL, MySQL, Redis e outros bancos suportados pelo Docker. Projetado para uso em ambiente de desenvolvimento local.
 
-## Estado Atual (Design)
+## Funcionalidades
 
-- **Backend**: TypeScript + Node.js + Express
-- **Orquestração**: Dockerode (cliente da Docker API)
-- **Persistência de metadados**: PostgreSQL com Prisma/TypeORM
-- **Interface**: Webapp (React ou HTML simples + fetch)
-- **Arquitetura**: Modular, com responsabilidades bem definidas
+- ✅ Criar instâncias de bancos de dados via Docker
+- ✅ Iniciar/parar instâncias
+- ✅ Listar instâncias ativas
+- ✅ Remover instâncias
+- ✅ Verificação automática de disponibilidade de portas
+- ✅ Documentação da API com Swagger UI
+- 🚧 Backup e restore (em desenvolvimento)
+- 🚧 Logs de instâncias (em desenvolvimento)
 
-> O projeto está em fase de design/implementação inicial. Este documento reflete a arquitetura definida e as decisões tomadas.
+## Tecnologias
 
-## Tecnologias Escolhidas
+- **Linguagem**: TypeScript
+- **Runtime**: Node.js
+- **Framework Web**: Express.js
+- **ORM**: Prisma (com PostgreSQL)
+- **Container Management**: Dockerode
+- **Documentação**: Swagger/OpenAPI
+- **Segurança**: Helmet, CORS
+- **Logging**: Morgan
 
-| Componente       | Tecnologia           | Justificativa |
-|------------------|----------------------|----------------|
-| Linguagem        | TypeScript           | Tipagem forte, assíncrono nativo, ecossistema maduro |
-| Runtime          | Node.js              | Leve, ideal para APIs e automação local |
-| Comunicação c/ Docker | Dockerode       | Abstração completa da API Docker, suporte a streams |
-| Banco de metadados | PostgreSQL           | Sem servidor, arquivo único, fácil backup |
-| Interface        | Webapp (localhost)   | Acesso rápido pelo navegador, sem dependências de interface nativa |
-| Restrição de execução | “Uma instância por vez” | Regra de negócio implementada no `InstanceService` |
+## Pré-requisitos
 
-## Estrutura Modular
+- Node.js (versão 18+)
+- Docker
+- PostgreSQL (para metadados do sistema)
+
+## Instalação
+
+1. Clone o repositório:
+   ```bash
+   git clone <url-do-repositorio>
+   cd database-manager-backend
+   ```
+
+2. Instale as dependências:
+   ```bash
+   npm install
+   ```
+
+3. Configure o banco de dados:
+   - Crie um banco PostgreSQL local ou use Docker
+   - Configure a variável de ambiente `DATABASE_URL` no arquivo `.env`:
+     ```
+     DATABASE_URL="postgresql://user:password@localhost:5432/database_manager"
+     ```
+
+4. Execute as migrações do Prisma:
+   ```bash
+   npx prisma migrate dev
+   ```
+
+## Execução
+
+### Desenvolvimento
+```bash
+npm run dev
+```
+
+O servidor iniciará na porta 3000 (ou definida em `PORT`).
+
+### Produção
+```bash
+npm run build
+npm start
+```
+
+## API
+
+A documentação completa da API está disponível via Swagger UI em `http://localhost:3000/api-docs` quando o servidor estiver rodando.
+
+### Endpoints Principais
+
+- `POST /instances` - Criar nova instância
+- `GET /instances` - Listar instâncias
+- `POST /instances/:id/start` - Iniciar instância
+- `POST /instances/:id/stop` - Parar instância
+- `DELETE /instances/:id` - Remover instância
+
+## Estrutura do Projeto
+
+```
 src/
-├── api/ # Camada de apresentação (HTTP)
-│ ├── routes/ # Endpoints por recurso
-│ │ ├── instances.ts
-│ │ ├── backups.ts
-│ │ └── logs.ts
-│ └── server.ts # Configuração do servidor Express
-│
-├── core/ # Lógica de negócio principal
-│ ├── docker-manager.ts # Wrapper técnico sobre Dockerode
-│ ├── instance-service.ts # Regras: criação, start/stop, concorrência
-│ └── backup-service.ts # Backup/restore de bancos
-│
-├── db/ # Persistência
-│ ├── schema.prisma # Modelos (Instance, Backup, Settings)
-│ └── client.ts # Conexão com PostgreSQL 
-│
-└── index.ts # Entrypoint: inicializa DB, API, serviços
-
-text
+├── api/
+│   ├── routes/
+│   │   ├── instances.ts    # Rotas de instâncias
+│   │   ├── backups.ts      # Rotas de backups (vazio)
+│   │   └── logs.ts         # Rotas de logs (vazio)
+│   └── server.ts           # Configuração do servidor (vazio)
+├── core/
+│   ├── docker-manager.ts   # Gerenciamento de containers Docker
+│   ├── instance-service.ts # Lógica de negócio das instâncias
+│   └── backup-service.ts   # Serviço de backups (vazio)
+├── db/
+│   ├── client.ts           # Cliente Prisma
+│   └── generated/          # Cliente Prisma gerado
+└── app.ts                  # Configuração principal do Express
+```
 
 ### Responsabilidades de cada módulo
 

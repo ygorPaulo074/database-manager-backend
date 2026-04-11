@@ -1,5 +1,6 @@
 {
   "devDependencies": {
+    "@types/dockerode": "^4.0.1",
     "@types/express": "^5.0.6",
     "@types/node": "^25.6.0",
     "@types/pg": "^8.20.0",

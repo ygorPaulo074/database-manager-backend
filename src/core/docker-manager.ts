@@ -39,6 +39,7 @@ export class DockerManager {
             },
         });
         return container;
+        
     } catch (error) {
         console.error("Error creating container:", error);
         throw error;

@@ -13,7 +13,7 @@ model Instance {
   name        String   @unique
   engine      String          // 'postgres', 'mysql', 'redis', etc.
   version     String          // ex: '15', '8.0', '7.2'
-  port        Int             // porta mapeada no host
+  port        Int?             // porta mapeada no host
   status      String          // 'running', 'stopped', 'error'
   containerId String?         // ID do container Docker (opcional, pode ser nulo se instância parada)
   createdAt   DateTime @default(now())

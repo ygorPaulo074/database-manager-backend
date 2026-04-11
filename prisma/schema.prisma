@@ -1,0 +1,50 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Tabela de instâncias de banco de dados
+model Instance {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  engine      String          // 'postgres', 'mysql', 'redis', etc.
+  version     String          // ex: '15', '8.0', '7.2'
+  port        Int             // porta mapeada no host
+  status      String          // 'running', 'stopped', 'error'
+  containerId String?         // ID do container Docker (opcional, pode ser nulo se instância parada)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relações
+  backups     Backup[]
+}
+
+// Tabela de backups
+model Backup {
+  id         String   @id @default(uuid())
+  instanceId String
+  filePath   String          // caminho absoluto completo do arquivo de backup
+  size       Int?            // tamanho em bytes (opcional, pode calcular depois)
+  createdAt  DateTime @default(now())
+
+  // Relação com Instance
+  instance   Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+
+  // Índices para buscas rápidas
+  @@index([instanceId])
+  @@index([createdAt])
+}
+
+// Tabela de configurações do sistema (chave-valor)
+model Setting {
+  key   String @id      // ex: 'defaultBackupPath', 'activeInstanceId'
+  value String          // valor armazenado como texto (caminho, ID, etc.)
+
+  // Exemplo de registros:
+  // ('defaultBackupPath', '/mnt/external-hd/daas-backups')
+  // ('activeInstanceId', 'uuid-da-instancia-ativa')
+}

@@ -1,8 +1,10 @@
 ﻿import { Router, Request, Response } from 'express';
 import { InstanceService } from '../../core/instance-service';
+import { DockerManager } from '../../core/docker-manager';
 
 const router = Router();
 const instanceService = new InstanceService();
+const dockerManager = new DockerManager();
 
 // POST /instances - Criar nova instância
 /**
@@ -194,6 +196,49 @@ router.delete('/:id', async (req: Request, res: Response) => {
         const status = error.message.includes('not found') ? 404 : 400;
         res.status(status).json({ error: error.message });
     }
+});
+
+// GET /instances/:id/logs - Obter logs dos containers
+/**
+ * @swagger
+ * /instances/{id}/logs:
+ *   get:
+ *     summary: Obter logs de uma instância
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID da instância
+ *     responses:
+ *       200:
+ *         description: Logs da instância recuperados com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 logs:
+ *                   type: string
+ *                   description: Conteúdo dos logs do container
+ *       400:
+ *         description: ID da instância não fornecido
+ *       404:
+ *         description: Instância não encontrada
+ *       500:
+ *         description: Erro ao recuperar logs
+ */
+router.get('/:id/logs', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  if (!id) return res.status(400).json({ error: 'Instance ID is required' });
+  try {
+    const instance = await instanceService.getInstanceById(id as string); // precisa existir
+    const logs = await dockerManager.getContainerLogs(instance.containerId!);
+    res.json({ logs });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 export default router;

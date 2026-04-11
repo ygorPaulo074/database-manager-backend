@@ -139,11 +139,9 @@ export class InstanceService {
         }
     }
 
-        // --- HELPER FUNCTIONS ---
-
     // Função para verificar se uma instância existe e obter seus detalhes
 
-    private async getInstanceById(instanceId: string) {
+    async getInstanceById(instanceId: string) {
         const instance = await this.prisma.instance.findUnique({
             where: { id: instanceId }
          });
@@ -159,6 +157,8 @@ export class InstanceService {
 
         return instance;
     }  
+
+        // --- HELPER FUNCTIONS ---
 
     // Função para verificar se uma porta está disponível localmente
     private async isPortAvailable(port: number): Promise<boolean> {

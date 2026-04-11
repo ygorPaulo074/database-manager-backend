@@ -62,7 +62,7 @@ export class DockerManager {
         try {
             const container = this.docker.getContainer(containerId);
             await container.start();
-        } catch (error) {
+        } catch (error) { 
             console.error("Error starting container:", error);
             throw error;
         }

@@ -1,5 +1,7 @@
+import { rejects } from "assert";
 import Docker from "dockerode";
 import { Container } from "dockerode";
+import Stream from "stream";
 
 interface CreateContainerOptions {
   image: string; // Imagem do Docker a ser usada
@@ -101,6 +103,61 @@ export class DockerManager {
             throw error;
         }
     }
+
+    // Função para executar métodos nos containers do Docker
+/**
+ * Executa um comando dentro de um container e retorna a saída padrão (stdout).
+ * @param containerId ID do container Docker
+ * @param cmd Comando e argumentos (ex: ['pg_dump', '--version'])
+ * @returns Promise com a saída do comando (stdout)
+ * @throws Se o comando falhar (código de saída != 0) com a mensagem de erro (stderr)
+ */
+    async execInContainer(containerId: string, cmd: string[]): Promise<string> {
+    const container = this.docker.getContainer(containerId);
+
+    // Cria a instância de exec
+    const exec = await container.exec({
+        Cmd: cmd,
+        AttachStdout: true,
+        AttachStderr: true,
+    });
+
+    return new Promise((resolve, reject) => {
+        exec.start({}, (err, stream) => {
+        if (err) return reject(err);
+        if (!stream) return reject(new Error('No stream returned from exec.start'));
+
+        let stdout = '';
+        let stderr = '';
+
+        stream.on('data', (chunk: Buffer) => {
+            let offset = 0;
+            while (offset < chunk.length) {
+            const streamType = chunk[offset]; // 1 = stdout, 2 = stderr
+            const size = chunk.readUInt32BE(offset + 4);
+            const data = chunk.slice(offset + 8, offset + 8 + size).toString('utf8');
+            if (streamType === 1) {
+                stdout += data;
+            } else if (streamType === 2) {
+                stderr += data;
+            }
+            offset += 8 + size;
+            }
+        });
+
+        stream.on('end', () => {
+            if (stderr) {
+            reject(new Error(stderr));
+            } else {
+            resolve(stdout);
+            }
+        });
+
+        stream.on('error', reject);
+        });
+    });
+    }
+    
 }
 
 export default DockerManager;

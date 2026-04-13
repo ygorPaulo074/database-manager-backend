@@ -155,6 +155,9 @@ export class DockerManager {
 
         stream.on('error', reject);
         });
+        setTimeout(() => {
+            reject(new Error('Command execution timed out'));
+        }, 30000); // Timeout de 30 segundos
     });
     }
     

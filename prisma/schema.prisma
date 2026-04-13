@@ -21,6 +21,19 @@ model Instance {
 
   // Relações
   backups     Backup[]
+  credential   InstanceCredential? // relação 1:1 opcional
+}
+
+model InstanceCredential {
+  id          String   @id @default(uuid())
+  instanceId  String   @unique
+  instance    Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  username    String
+  password    String   
+  database    String?  // nome do banco (para PostgreSQL/MySQL)
+  engine      String   // postgres, mysql, redis (para facilitar)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 // Tabela de backups

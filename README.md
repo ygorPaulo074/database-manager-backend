@@ -1,16 +1,16 @@
-# Database Manager Backend
+﻿# Database Manager Backend
 
 ## Descrição
 
-Sistema backend para gerenciamento de instâncias de bancos de dados utilizando containers Docker. Permite criar, iniciar, parar e remover instâncias de PostgreSQL, MySQL, Redis e outros bancos suportados pelo Docker. Projetado para uso em ambiente de desenvolvimento local.
+Backend para gerenciamento de instâncias de bancos de dados usando containers Docker. Permite criar, iniciar, parar, listar e remover instâncias de PostgreSQL, MySQL e Redis em um ambiente local.
 
 ## Funcionalidades
 
 - ✅ Criar instâncias de bancos de dados via Docker
 - ✅ Iniciar/parar instâncias
-- ✅ Listar instâncias ativas
+- ✅ Listar instâncias
 - ✅ Remover instâncias
-- ✅ Verificação automática de disponibilidade de portas
+- ✅ Verificação de disponibilidade de portas
 - ✅ Documentação da API com Swagger UI
 - 🚧 Backup e restore (em desenvolvimento)
 - 🚧 Logs de instâncias (em desenvolvimento)
@@ -20,7 +20,7 @@ Sistema backend para gerenciamento de instâncias de bancos de dados utilizando 
 - **Linguagem**: TypeScript
 - **Runtime**: Node.js
 - **Framework Web**: Express.js
-- **ORM**: Prisma (com PostgreSQL)
+- **ORM**: Prisma
 - **Container Management**: Dockerode
 - **Documentação**: Swagger/OpenAPI
 - **Segurança**: Helmet, CORS
@@ -28,7 +28,7 @@ Sistema backend para gerenciamento de instâncias de bancos de dados utilizando 
 
 ## Pré-requisitos
 
-- Node.js (versão 18+)
+- Node.js 18+
 - Docker
 - PostgreSQL (para metadados do sistema)
 
@@ -46,9 +46,9 @@ Sistema backend para gerenciamento de instâncias de bancos de dados utilizando 
    ```
 
 3. Configure o banco de dados:
-   - Crie um banco PostgreSQL local ou use Docker
-   - Configure a variável de ambiente `DATABASE_URL` no arquivo `.env`:
-     ```
+   - Crie um banco PostgreSQL local ou use Docker.
+   - Configure a variável de ambiente `DATABASE_URL` em um arquivo `.env`:
+     ```bash
      DATABASE_URL="postgresql://user:password@localhost:5432/database_manager"
      ```
 
@@ -64,17 +64,11 @@ Sistema backend para gerenciamento de instâncias de bancos de dados utilizando 
 npm run dev
 ```
 
-O servidor iniciará na porta 3000 (ou definida em `PORT`).
-
-### Produção
-```bash
-npm run build
-npm start
-```
+O servidor inicia na porta `3000`, ou em `PORT` caso definido.
 
 ## API
 
-A documentação completa da API está disponível via Swagger UI em `http://localhost:3000/api-docs` quando o servidor estiver rodando.
+A documentação da API está disponível em `http://localhost:3000/api-docs` quando o servidor estiver em execução.
 
 ### Endpoints Principais
 
@@ -83,77 +77,50 @@ A documentação completa da API está disponível via Swagger UI em `http://loc
 - `POST /instances/:id/start` - Iniciar instância
 - `POST /instances/:id/stop` - Parar instância
 - `DELETE /instances/:id` - Remover instância
+- `GET /instances/:id/logs` - Obter logs do container
 
 ## Estrutura do Projeto
 
 ```
 src/
 ├── api/
-│   ├── routes/
-│   │   ├── instances.ts    # Rotas de instâncias
-│   │   ├── backups.ts      # Rotas de backups (vazio)
-│   │   └── logs.ts         # Rotas de logs (vazio)
-│   └── server.ts           # Configuração do servidor (vazio)
+│   └── routes/
+│       └── instances.ts    # Rotas de instâncias
 ├── core/
-│   ├── docker-manager.ts   # Gerenciamento de containers Docker
-│   ├── instance-service.ts # Lógica de negócio das instâncias
-│   └── backup-service.ts   # Serviço de backups (vazio)
+│   ├── docker-manager.ts   # Gerencia containers Docker
+│   ├── instance-service.ts # Lógica de instâncias
+│   └── backup-service.ts   # Backups e restores (em desenvolvimento)
 ├── db/
 │   ├── client.ts           # Cliente Prisma
 │   └── generated/          # Cliente Prisma gerado
-└── app.ts                  # Configuração principal do Express
+├── app.ts                  # Configuração do Express
+└── index.ts                # Inicialização do servidor
 ```
 
 ### Responsabilidades de cada módulo
 
-- **`api/`** – Expõe endpoints HTTP. Não contém regras de negócio nem acesso direto ao Docker.
-- **`core/docker-manager.ts`** – Comunicação de baixo nível com o Docker (criação, início, parada, logs).
-- **`core/instance-service.ts`** – Aplica regras de negócio:
-  - Nomes e portas únicas.
-  - **Restrição “uma instância ligada por vez”** (implementada internamente ou com auxílio de `instance-lock.ts`).
-  - Coordenação entre Docker e banco de metadados.
-- **`core/backup-service.ts`** – Executa comandos de dump/restore dentro de containers.
-- **`db/`** – Gerencia o armazenamento de metadados (instâncias, backups, configurações).
-- **`ui/`** – Interface visual para o usuário; consome a API.
+- **`api/`** – Expõe a API REST e recebe as requisições HTTP.
+- **`core/docker-manager.ts`** – Cria, inicia, para e remove containers Docker.
+- **`core/instance-service.ts`** – Gera credenciais, cria instâncias, valida portas e atualiza metadados no banco.
+- **`core/backup-service.ts`** – Implementação inicial de comandos de dump/restore.
+- **`db/`** – Configura o cliente Prisma e armazena metadados.
 
-## Funcionalidades Planejadas
+## Limitações Conhecidas
 
-- [x] Definição da arquitetura modular
-- [ ] Criar/remover instâncias (PostgreSQL, MySQL, Redis)
-- [ ] Iniciar/parar/relistar instâncias
-- [ ] **Restrição**: apenas uma instância em execução por vez (evita conflitos de recursos locais)
-- [ ] Visualização de logs em tempo real (SSE ou WebSocket)
-- [ ] Backup manual (pg_dump, mysqldump)
-- [ ] Métricas básicas (CPU, memória via `docker stats`)
-- [ ] Persistência dos metadados em PostgreSQL 
-- [ ] Interface web simples (listagem, botões de ação)
-- [ ] (Opcional) CLI com `commander` para comandos rápidos
+- A funcionalidade de backup/restore ainda está em desenvolvimento.
+- A coleta de logs por instância é básica.
+- Redis: atualmente a criação de instâncias define `REDIS_PASSWORD`, mas a imagem oficial `redis` pode não habilitar autenticação apenas com essa variável de ambiente.
+  - Isso pode fazer com que instâncias Redis funcionem sem autenticação real.
+  - Esse comportamento pode causar erros de conexão ou resultados inesperados em testes de autenticação.
 
-## Regra de Negócio – Uma Instância por Vez
+## Observações
 
-Para economizar recursos locais e evitar conflitos de porta, o sistema permite **apenas uma instância de banco ativa (running)** por vez.
+- Não existe um processo `npm run build` ou `npm start` definido no `package.json`; o modo principal disponível é `npm run dev`.
+- A documentação Swagger é gerada a partir das anotações em `src/api/routes/instances.ts`.
 
-- Se uma instância já estiver rodando e o usuário tentar iniciar outra:
-  - A instância ativa é **automaticamente parada** antes de iniciar a nova.
-- A lógica fica centralizada em `InstanceService.startInstance(id)`.
-- Se a restrição precisar persistir entre reinicializações do DaaS, o `activeInstanceId` será armazenado na tabela `Settings` do PostgreSQL.
+## Próximos passos
 
-
-## Pré‑requisitos:
-
-Docker Engine instalado e rodando
-
-Node.js 18+ ou 20+
-
-Acesso ao socket do Docker (/var/run/docker.sock no Linux, equivalente no Windows/Mac)
-
-Próximos Passos
-Implementar docker-manager.ts com os métodos básicos (criar, iniciar, parar, remover).
-
-Criar o instance-service.ts e a regra “uma instância por vez”.
-
-Configurar PostgreSQL e os modelos com Prisma.
-
-Desenvolver uma API REST mínima (listar, criar, iniciar/parar).
-
-Construir uma interface web simples (pode ser apenas HTML + fetch).
+- Ajustar a configuração de Redis para habilitar autenticação de forma confiável.
+- Completar backup/restore para PostgreSQL, MySQL e Redis.
+- Melhorar a coleta de logs e o tratamento de estados de erro.
+- Adicionar testes automatizados e validação de entrada.

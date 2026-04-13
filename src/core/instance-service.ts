@@ -34,10 +34,32 @@ export class InstanceService {
                     throw new Error(`Port ${port} is already in use.`);
                 }}
        
+            const credentials = await this.getDefaultCredentials(engine, name);
+            let engineSpecificEnv: string[] = [];
+            switch (engine) {
+            case 'postgres':
+                engineSpecificEnv = [
+                `POSTGRES_USER=${credentials.username}`,
+                `POSTGRES_PASSWORD=${credentials.password}`,
+                `POSTGRES_DB=${credentials.database}`,
+                ];
+                break;
+            case 'mysql':
+                engineSpecificEnv = [
+                `MYSQL_ROOT_PASSWORD=${credentials.password}`,
+                `MYSQL_DATABASE=${credentials.database}`,
+                ];
+                break;
+            case 'redis':
+                engineSpecificEnv = [`REDIS_PASSWORD=${credentials.password}`];
+                break;
+            }
+            const finalEnvVars = [...(envVars ?? []), ...engineSpecificEnv];
+
             const containerOptions: CreateContainerOptions = {
             image: `${engine}:${version}`,
             name: name,
-            env: envVars ?? [],
+            env: finalEnvVars,
             ...(port && { portBindings: { [`${port}/tcp`]: [{ HostPort: String(port) }] } })
             };
 
@@ -51,6 +73,16 @@ export class InstanceService {
                 e atualiza o status para "running" no banco de dados, então só é necessário 
                 chamar startInstance.*/
             }
+
+            await this.prisma.instanceCredential.create({
+            data: {
+                instanceId: instanceId,
+                username: credentials.username,
+                password: credentials.password,
+                database: credentials.database,
+                engine: engine,
+            }
+            });
         
         } catch (error) {
             console.error("Error during instance creation:", error);
@@ -59,14 +91,16 @@ export class InstanceService {
             if (containerId) {
                 await this.dockerManager.removeContainer(containerId).catch(e => console.error(e));
             }
-
-            // Rollback: remove registro do banco (se foi criado)
+            
+            // Rollback: remove registro do banco de dados
             if (instanceId) {
                 await this.prisma.instance.delete({ where: { id: instanceId } }).catch(e => console.error(e));
             }
+
             throw error;
         }
-    }        
+    }
+            
     // Função para iniciar uma instância de banco de dados
     async startInstance(instanceId: string): Promise<void> {
         const instance = await this.getInstanceById(instanceId);
@@ -159,6 +193,42 @@ export class InstanceService {
     }  
 
         // --- HELPER FUNCTIONS ---
+
+    // Função para gerar uma senha aleatória
+    private generatePassword(length = 16): string {
+        const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()';
+        let password = '';
+        for (let i = 0; i < length; i++) {
+            password += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return password;
+    }
+
+    // Função para obter credenciais padrão com base no tipo de banco de dados
+    private getDefaultCredentials(engine: string, instanceName: string) {
+        switch (engine) {
+            case 'postgres':
+            return {
+                username: 'postgres',
+                password: this.generatePassword(),
+                database: instanceName.replace(/-/g, '_'),
+            };
+            case 'mysql':
+            return {
+                username: 'root',
+                password: this.generatePassword(),
+                database: instanceName.replace(/-/g, '_'),
+            };
+            case 'redis':
+            return {
+                username: '', // Redis geralmente não tem usuário
+                password: this.generatePassword(),
+                database: null,
+            };
+            default:
+            throw new Error(`Unsupported engine: ${engine}`);
+        }
+    }
 
     // Função para verificar se uma porta está disponível localmente
     private async isPortAvailable(port: number): Promise<boolean> {
